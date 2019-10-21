@@ -45,3 +45,22 @@ MERGE (c)-[:IN_STATE]->(s)
 MERGE (country:Country {code: coalesce(row.country_code, "IT")})
 SET country.name = row.country
 MERGE (s)-[:IN_COUNTRY]->(country)
+
+LOAD CSV WITH HEADERS FROM "file:///listings.csv" AS row
+WITH row WHERE row.host_id IS NOT NULL
+MERGE (h:Host {host_id: row.host_id})
+ON CREATE SET h.name            = row.host_name,
+              h.about           = row.host_about,
+              h.verifications   = row.host_verifications,
+              h.listings_count  = toInt(row.host_listings_count),
+              h.acceptance_rate = toFloat(row.host_acceptance_rate),
+              h.host_since      = row.host_since,
+              h.url             = row.host_url,
+              h.response_rate   = row.host_response_rate,
+              h.superhost       = CASE WHEN row.host_is_super_host = "t" THEN True ELSE False END,
+              h.location        = row.host_location,
+              h.verified        = CASE WHEN row.host_identity_verified = "t" THEN True ELSE False END,
+              h.image           = row.host_picture_url
+ON MATCH SET h.count = coalesce(h.count, 0) + 1
+MERGE (l:Listing {listing_id: row.id})
+MERGE (h)-[:HOSTS]->(l); 
