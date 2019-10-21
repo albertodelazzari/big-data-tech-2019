@@ -1,6 +1,6 @@
 # Import Milan listings
-USING PERIODIC COMMIT 100
-LOAD CSV WITH HEADERS FROM "file://listings.csv" AS row FIELDTERMINATOR ','
+USING PERIODIC COMMIT 500
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row FIELDTERMINATOR ','
 WITH row WHERE row.id IS NOT NULL
 MERGE (l:Listing {listing_id: row.id})
 ON CREATE SET l.name                        = row.name,
