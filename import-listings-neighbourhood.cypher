@@ -35,3 +35,13 @@ ON CREATE SET l.name                        = row.name,
               l.property_type               = row.property_type
 ON MATCH SET l.count = coalesce(l.count, 0) + 1
 
+MERGE (n:Neighborhood {neighborhood_id: coalesce(row.neighbourhood_cleansed, "Milan")})
+SET n.name = row.neighbourhood
+MERGE (c:City {name: "Milan"})
+MERGE (l)-[:IN_NEIGHBORHOOD]->(n)
+MERGE (n)-[:LOCATED_IN]->(c)
+MERGE (s:Province {name: "Lombardy"})
+MERGE (c)-[:IN_STATE]->(s)
+MERGE (country:Country {code: coalesce(row.country_code, "IT")})
+SET country.name = row.country
+MERGE (s)-[:IN_COUNTRY]->(country)
