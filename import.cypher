@@ -55,6 +55,11 @@ MERGE (country:Country {code: coalesce(row.country_code, "IT")})
 SET country.name = row.country
 MERGE (s)-[:IN_COUNTRY]->(country)
 
+WITH l, split(replace(replace(replace(row.amenities, "{", ""), "}", ""), "\"", ""), ",") AS amenities
+UNWIND amenities AS amenity
+MERGE (a:Amenity {name: amenity})
+MERGE (l)-[:HAS]->(a);
+
 USING PERIODIC COMMIT 500
 LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row
 WITH row WHERE row.host_id IS NOT NULL
