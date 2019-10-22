@@ -46,6 +46,7 @@ MERGE (country:Country {code: coalesce(row.country_code, "IT")})
 SET country.name = row.country
 MERGE (s)-[:IN_COUNTRY]->(country)
 
+USING PERIODIC COMMIT 500
 LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row
 WITH row WHERE row.host_id IS NOT NULL
 MERGE (h:Host {host_id: row.host_id})
@@ -64,3 +65,19 @@ ON CREATE SET h.name            = row.host_name,
 ON MATCH SET h.count = coalesce(h.count, 0) + 1
 MERGE (l:Listing {listing_id: row.id})
 MERGE (h)-[:HOSTS]->(l); 
+
+USING PERIODIC COMMIT 500
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/reviews.csv" AS row
+
+// User
+MERGE (u:User {user_id: row.reviewer_id})
+SET u.name = row.reviewer_name
+
+// Review
+MERGE (r:Review {review_id: row.id})
+ON CREATE SET r.date     = row.date,
+              r.comments = row.comments
+WITH row, u, r
+MATCH (l:Listing {listing_id: row.listing_id})
+MERGE (u)-[:WROTE]->(r)
+MERGE (r)-[:REVIEWS]->(l);
