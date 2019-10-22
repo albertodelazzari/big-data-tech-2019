@@ -46,7 +46,7 @@ MERGE (country:Country {code: coalesce(row.country_code, "IT")})
 SET country.name = row.country
 MERGE (s)-[:IN_COUNTRY]->(country)
 
-LOAD CSV WITH HEADERS FROM "file:///listings.csv" AS row
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row
 WITH row WHERE row.host_id IS NOT NULL
 MERGE (h:Host {host_id: row.host_id})
 ON CREATE SET h.name            = row.host_name,
