@@ -41,7 +41,7 @@ MERGE (c:City {name: "Milan"})
 MERGE (l)-[:IN_NEIGHBORHOOD]->(n)
 MERGE (n)-[:LOCATED_IN]->(c)
 MERGE (s:Province {name: "Lombardy"})
-MERGE (c)-[:IN_STATE]->(s)
+MERGE (c)-[:IN_PROVINCE]->(s)
 MERGE (country:Country {code: coalesce(row.country_code, "IT")})
 SET country.name = row.country
 MERGE (s)-[:IN_COUNTRY]->(country)
