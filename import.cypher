@@ -53,12 +53,7 @@ MERGE (s:Province {name: "Lombardy"})
 MERGE (c)-[:IN_PROVINCE]->(s)
 MERGE (country:Country {code: coalesce(row.country_code, "IT")})
 SET country.name = row.country
-MERGE (s)-[:IN_COUNTRY]->(country)
-
-WITH l, split(replace(replace(replace(row.amenities, "{", ""), "}", ""), "\"", ""), ",") AS amenities
-UNWIND amenities AS amenity
-MERGE (a:Amenity {name: amenity})
-MERGE (l)-[:HAS]->(a);
+MERGE (s)-[:IN_COUNTRY]->(country);
 
 USING PERIODIC COMMIT 500
 LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row
@@ -79,6 +74,15 @@ ON CREATE SET h.name            = row.host_name,
 ON MATCH SET h.count = coalesce(h.count, 0) + 1
 MERGE (l:Listing {listing_id: row.id})
 MERGE (h)-[:HOSTS]->(l); 
+
+USING PERIODIC COMMIT 500
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row FIELDTERMINATOR ','
+WITH row WHERE row.id IS NOT NULL
+MATCH (l:Listing {listing_id: row.id})
+WITH l, split(replace(replace(replace(row.amenities, "{", ""), "}", ""), "\"", ""), ",") AS amenities
+UNWIND amenities AS amenity
+MERGE (a:Amenity {name: amenity})
+MERGE (l)-[:HAS]->(a);
 
 USING PERIODIC COMMIT 500
 LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/reviews.csv" AS row
