@@ -6,13 +6,19 @@ CREATE CONSTRAINT ON (c:City) ASSERT c.citystate IS UNIQUE;
 CREATE CONSTRAINT ON (s:Province) ASSERT s.code IS UNIQUE;
 CREATE CONSTRAINT ON (c:Country) ASSERT c.code IS UNIQUE;
 CREATE CONSTRAINT ON (r:Review) ASSERT r.review_id IS UNIQUE;
+CREATE CONSTRAINT ON (n:Neighborhood) ASSERT n.neighborhood_id IS UNIQUE;
 
 # Import Milan listings
 USING PERIODIC COMMIT 500
 LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row FIELDTERMINATOR ','
 WITH row WHERE row.id IS NOT NULL
 MERGE (l:Listing {listing_id: row.id})
-ON CREATE SET l.name                        = row.name,
+
+USING PERIODIC COMMIT 500
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row FIELDTERMINATOR ','
+WITH row WHERE row.id IS NOT NULL
+MATCH (l:Listing {listing_id: row.id})
+SET           l.name                        = row.name,
               l.latitude                    = toFloat(row.latitude),
               l.longitude                   = toFloat(row.longitude),
               l.reviews_per_month           = toFloat(row.reviews_per_month),
@@ -41,9 +47,13 @@ ON CREATE SET l.name                        = row.name,
               l.bathrooms                   = toFloat(row.bathrooms),
               l.accommodates                = toInt(row.accommodates),
               l.room_type                   = row.room_type,
-              l.property_type               = row.property_type
-ON MATCH SET l.count = coalesce(l.count, 0) + 1
+              l.property_type               = row.property_type,
+              l.count                       = coalesce(l.count, 0) + 1;
 
+USING PERIODIC COMMIT 500
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row FIELDTERMINATOR ','
+WITH row WHERE row.id IS NOT NULL
+MATCH (l:Listing {listing_id: row.id})
 MERGE (n:Neighborhood {neighborhood_id: coalesce(row.neighbourhood_cleansed, "Milan")})
 SET n.name = row.neighbourhood
 MERGE (c:City {name: "Milan"})
@@ -58,11 +68,16 @@ MERGE (s)-[:IN_COUNTRY]->(country);
 USING PERIODIC COMMIT 500
 LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row
 WITH row WHERE row.host_id IS NOT NULL
-MERGE (h:Host {host_id: row.host_id})
-ON CREATE SET h.name            = row.host_name,
+MERGE (h:Host {host_id: row.host_id});
+
+USING PERIODIC COMMIT 1000
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row
+WITH row WHERE row.host_id IS NOT NULL
+MATCH (h:Host {host_id: row.host_id})
+SET h.name            = row.host_name,
               h.about           = row.host_about,
               h.verifications   = row.host_verifications,
-              h.listings_count  = toInt(row.host_listings_count),
+              h.listings_count  = toInteger(row.host_listings_count),
               h.acceptance_rate = toFloat(row.host_acceptance_rate),
               h.host_since      = row.host_since,
               h.url             = row.host_url,
@@ -70,10 +85,17 @@ ON CREATE SET h.name            = row.host_name,
               h.superhost       = CASE WHEN row.host_is_super_host = "t" THEN True ELSE False END,
               h.location        = row.host_location,
               h.verified        = CASE WHEN row.host_identity_verified = "t" THEN True ELSE False END,
-              h.image           = row.host_picture_url
-ON MATCH SET h.count = coalesce(h.count, 0) + 1
+              h.image           = row.host_picture_url,
+h.count = coalesce(h.count, 0) + 1
 MERGE (l:Listing {listing_id: row.id})
-MERGE (h)-[:HOSTS]->(l); 
+MERGE (h)-[:HOSTS]->(l);
+
+USING PERIODIC COMMIT 1000
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row FIELDTERMINATOR ','
+WITH row WHERE row.id IS NOT NULL
+WITH split(replace(replace(replace(row.amenities, "{", ""), "}", ""), "\"", ""), ",") AS amenities
+UNWIND amenities AS amenity
+MERGE (a:Amenity {name: amenity})
 
 USING PERIODIC COMMIT 500
 LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/listings.csv" AS row FIELDTERMINATOR ','
@@ -81,21 +103,26 @@ WITH row WHERE row.id IS NOT NULL
 MATCH (l:Listing {listing_id: row.id})
 WITH l, split(replace(replace(replace(row.amenities, "{", ""), "}", ""), "\"", ""), ",") AS amenities
 UNWIND amenities AS amenity
-MERGE (a:Amenity {name: amenity})
+MATCH (a:Amenity {name: amenity})
 MERGE (l)-[:HAS]->(a);
 
+// User
 USING PERIODIC COMMIT 500
 LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/reviews.csv" AS row
-
-// User
 MERGE (u:User {user_id: row.reviewer_id})
 SET u.name = row.reviewer_name
 
 // Review
+USING PERIODIC COMMIT 500
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/reviews.csv" AS row
 MERGE (r:Review {review_id: row.id})
-ON CREATE SET r.date     = row.date,
-              r.comments = row.comments
-WITH row, u, r
+SET r.date = row.date,
+    r.comments = row.comments
+    
+USING PERIODIC COMMIT 500
+LOAD CSV WITH HEADERS FROM "file:///Users/albertodelazzari/Downloads/reviews.csv" AS row
+MATCH (u:User {user_id: row.reviewer_id}) 
+MATCH (r:Review {review_id: row.id})
 MATCH (l:Listing {listing_id: row.listing_id})
 MERGE (u)-[:WROTE]->(r)
 MERGE (r)-[:REVIEWS]->(l);
