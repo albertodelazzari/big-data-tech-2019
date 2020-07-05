@@ -3,4 +3,4 @@ WITH ["5411", "4814", "7011", "3026", "3548", "5699", "5651", "5691", "4511", "5
 MATCH (c:CreditCard)-[t:HAS_TRANSACTION]->(m:Merchant)-[:HAS_CATEGORY]->(mcc:Mcc)
 WHERE c.id IN cards AND mcc.code IN overall_mcc
 WITH c, collect(distinct mcc.code) as mcc
-SET gds.alpha.ml.oneHotEncoding(overall_mcc, mcc);
+SET c.embedding = gds.alpha.ml.oneHotEncoding(overall_mcc, mcc);
